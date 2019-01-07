@@ -26,6 +26,8 @@ class chessFrame extends JFrame implements MouseListener{
     private static final int w = 50;
     private static final int rw = 350;
     private static int[][] chess ;
+    private static int  deep  = 4;
+    private static int[] alfabeta;
     
     
     private Graphics jg;
@@ -57,7 +59,14 @@ class chessFrame extends JFrame implements MouseListener{
                 chess[i][j] = 0;
         // 获取专门用于在窗口界面上绘图的对象
         jg =  this.getGraphics();
-        
+        alfabeta = new int[deep];
+        for(int i = 0;i<deep;i++)
+        {
+            if(i%2==0)
+                alfabeta[i] = Integer.MIN_VALUE;
+            else
+                alfabeta[i] = Integer.MAX_VALUE;
+        }
         // 绘制游戏区域
         paintComponents(jg);
         
@@ -87,8 +96,8 @@ class chessFrame extends JFrame implements MouseListener{
         int[][] a = new int[8][8];
 	int res = -1;
         ArrayList open = new ArrayList();
-        for (int i = 0; i < 7; i++) {
-            for (int j = 0; j < 7; j++) {
+        for (int i = 0; i < 8; i++) {
+            for (int j = 0; j < 8; j++) {
                 if (chess[i][j] == 0) {
                     open.add(i * 8 + j);
                 }
@@ -102,7 +111,6 @@ class chessFrame extends JFrame implements MouseListener{
             int one =  (int)open.get(index);
             a[one / 8][one % 8] = -1;
             int findtwo = Integer.MAX_VALUE;
-            int alfa = Integer.MIN_VALUE;
             for (int index1 = 0;index1 < open.size();index1++ )
             {
 			
@@ -168,6 +176,94 @@ class chessFrame extends JFrame implements MouseListener{
             case Integer.MIN_VALUE:JOptionPane.showMessageDialog(this, "你赢了！", "消息提示", JOptionPane.INFORMATION_MESSAGE);break;
         }
     }
+    public int AI(int[][] ch,int d)
+    {
+        ArrayList open = new ArrayList();
+        for (int i = 0; i < 8; i++) {
+            for (int j = 0; j < 8; j++) {
+                if (ch[i][j] == 0) {
+                    open.add(i * 8 + j);
+                }
+            }
+        }
+        int findtemp;
+        if(d == deep-1)
+        {
+            for (int index = 0; index < open.size(); index++) 
+            {
+                int point = (int) open.get(index);
+                ch[point / 8][point % 8] = 1;
+                int numtemp = f(ch);
+                if (numtemp < alfabeta[d]) {
+                    alfabeta[d] = numtemp;
+                }
+                ch[point / 8][point % 8] = 0;
+                if (numtemp < alfabeta[d-1] ) {
+                   return alfabeta[d];
+                }
+            }
+            return alfabeta[d];
+        }
+        else
+        {
+            if(d==0)
+            {
+                int res = 0;
+                for (int index = 0; index < open.size(); index++) 
+                {
+                    int point = (int) open.get(index);
+                    ch[point / 8][point % 8] = -1;
+                    alfabeta[1] = Integer.MAX_VALUE;
+                    int numtemp = AI(ch,d+1);
+                    if (numtemp > alfabeta[0])
+                    {
+                        alfabeta[0] = numtemp;
+                        res = point;
+                    }
+                    ch[point / 8][point % 8] = 0;
+
+                }
+                return res;
+            }
+            else
+            {
+                for (int index = 0; index < open.size(); index++) 
+                {
+                    int point = (int) open.get(index);
+                    ch[point / 8][point % 8] = d%2*2-1;
+                    if(d%2==1)
+                        alfabeta[d+1] = Integer.MIN_VALUE;
+                    else
+                        alfabeta[d+1] = Integer.MAX_VALUE;
+                    int numtemp = AI(ch,d+1);
+                    if(d%2==0)
+                    {
+                        if (numtemp > alfabeta[d]) {
+                            alfabeta[d] = numtemp;
+                        }
+                        if (numtemp > alfabeta[d-1] ) 
+                        {
+                            return alfabeta[d];
+                        }
+                    }
+                    else
+                    {
+                        if (numtemp < alfabeta[d]) {
+                            alfabeta[d] = numtemp;
+                        }
+                        if (numtemp < alfabeta[d-1] ) 
+                        {
+                            return alfabeta[d];
+                        }
+                    }
+                    ch[point / 8][point % 8] = 0;
+
+                }
+                return alfabeta[d];
+            }
+        }
+        
+    }
     int f(int[][] ch)
     {
             int res = 0;
@@ -204,15 +300,16 @@ class chessFrame extends JFrame implements MouseListener{
     }
     int result()
     {
-            int res = 0;
+            int w = 0;
+            int bl = 0;
             for (int i = 0; i < 8; i++)
             {
                     for (int j = 0; j < 4; j++)
                     {
                             if(chess[i][j] >=0 && chess[i][j + 1]  >=0&&chess[i][j + 2] >=0 && chess[i][j + 3] >=0 && chess[i][j + 4]>=0)
-                                res++;
+                                w++;
                             if(chess[j][i] >=0 && chess[j + 1][i] >=0 && chess[j + 2][i] >=0 && chess[j + 3][i] >=0 && chess[j + 4][i]>=0 )
-                                res++;
+                                bl++;
                             int a = chess[i][j] + chess[i][j + 1] + chess[i][j + 2] + chess[i][j + 3] + chess[i][j + 4];
                             int b = chess[j][i] + chess[j + 1][i] + chess[j + 2][i] + chess[j + 3][i] + chess[j + 4][i];
                             if (a == -5 || b == -5)
@@ -226,9 +323,9 @@ class chessFrame extends JFrame implements MouseListener{
                     for (int i = 0; i < 4; i++)
                     {
                            if(chess[i][j] >=0 && chess[i + 1][j - 1] >=0 && chess[i + 2][j - 2] >=0 && chess[i + 3][j - 3] >=0 && chess[i + 4][j - 4]>=0 )
-                               res++;
+                               w++;
                             if(chess[i][7 - j] >=0 && chess[i + 1][8 - j] >=0 && chess[i + 2][9 - j] >=0 && chess[i + 3][10 - j] >=0 && chess[i + 4][11 - j]>=0 )
-                                res++;
+                                bl++;
                             int a = chess[i][j] + chess[i + 1][j - 1] + chess[i + 2][j - 2] + chess[i + 3][j - 3] + chess[i + 4][j - 4];
                             int b = chess[i][7 - j] + chess[i + 1][8 - j] + chess[i + 2][9 - j] + chess[i + 3][10 - j] + chess[i + 4][11 - j];
                             if (a == -5 || b == -5)
@@ -237,7 +334,7 @@ class chessFrame extends JFrame implements MouseListener{
                                     return Integer.MIN_VALUE;
                     }
             }
-            return res;
+            return w-bl;
     }
     @Override
     public void mouseClicked(MouseEvent e) {
@@ -251,7 +348,22 @@ class chessFrame extends JFrame implements MouseListener{
             case Integer.MAX_VALUE:JOptionPane.showMessageDialog(this, "你输了！", "消息提示", JOptionPane.INFORMATION_MESSAGE);break;
             case Integer.MIN_VALUE:JOptionPane.showMessageDialog(this, "你赢了！", "消息提示", JOptionPane.INFORMATION_MESSAGE);break;
         }
-        AI();
+//        AI();
+        int[][] a = new int[8][8];
+        for(int i=0;i<8;i++)
+            for(int j = 0;j<8;j++)
+                a[i][j] = chess[i][j];
+        alfabeta[0] = Integer.MIN_VALUE;
+        int res = AI(a,0);
+        
+            chess[res / 8][res % 8] = -1;
+            jg.setColor(Color.WHITE);
+            jg.fillOval((res / 8+1)*50, (res % 8+1)*50, 50, 50);
+            switch(result()) {
+                case 0 :JOptionPane.showMessageDialog(this, "平局！", "消息提示", JOptionPane.INFORMATION_MESSAGE);break;
+                case Integer.MAX_VALUE:JOptionPane.showMessageDialog(this, "你输了！", "消息提示", JOptionPane.INFORMATION_MESSAGE);break;
+                case Integer.MIN_VALUE:JOptionPane.showMessageDialog(this, "你赢了！", "消息提示", JOptionPane.INFORMATION_MESSAGE);break;
+            }
          //To change body of generated methods, choose Tools | Templates.
     }
 
